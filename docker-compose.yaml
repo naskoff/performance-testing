@@ -1,0 +1,69 @@
+services:
+  httpbin:
+    restart: always
+    image: grafana/k6-httpbin
+    ports:
+      - "8080:8080"
+
+  # Tools for monitoring
+  siege:
+    image: jstarcher/siege:latest
+    working_dir: /siege
+    depends_on:
+      - httpbin
+    volumes:
+      - ./siege:/siege
+    entrypoint: [ "/bin/sh","-lc" ]
+    # Run siege with 50 concurrent users, 3 iterations, and the urls.txt file
+    command: >
+      siege -c 50 -r 3 -f /siege/urls.txt | tee /siege/siege.log
+      
+  vegeta:
+    image: peterevans/vegeta
+    working_dir: /vegeta
+    depends_on:
+      - httpbin
+    volumes:
+      - ./vegeta:/vegeta
+    entrypoint: [ "/bin/sh", "-lc" ]
+    # Run vegeta with request per minute are 80 and the duration of test 30s
+    command: >
+      vegeta attack -targets=tests.txt -rate=80 -duration=30s |
+      tee results.bin |
+      vegeta report -type=html > report.html
+
+  locust:
+    image: locustio/locust:latest
+    ports:
+      - "8089:8089" # Web UI port
+    volumes:
+      - ./locust:/locust
+    command: -f /locust/locustfile.py -H http://host.docker.internal:8080
+
+  gatling:
+    image: denvazh/gatling:latest
+    depends_on:
+      - httpbin
+    working_dir: /gatling
+    volumes:
+      - ./gatling/user-files:/gatling/user-files
+      - ./gatling/results:/gatling/results
+    command: [ "-s", "HttpBinSimulation", "-rf", "/gatling/results" ]
+
+  k6:
+    image: grafana/k6
+    depends_on:
+      - httpbin
+    working_dir: /k6
+    volumes:
+      - ./k6:/k6
+    command: ["run", "--out", "json=/k6/results.json", "/k6/test.js"]
+
+  artillery:
+    image: artilleryio/artillery:2.0.21
+    depends_on:
+      - httpbin
+    working_dir: /artillery
+    volumes:
+      - ./artillery:/artillery
+    entrypoint: ["/bin/sh", "/artillery/run.sh"]

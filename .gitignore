@@ -3,4 +3,5 @@ gatling/results/*
 k6/report.html
 k6/results.json
 locust/__pycache__/
+vegeta/plot.html
 vegeta/results.bin

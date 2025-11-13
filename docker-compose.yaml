@@ -13,10 +13,10 @@ services:
       - httpbin
     volumes:
       - ./siege:/siege
-    entrypoint: [ "/bin/sh","-lc" ]
+    entrypoint: ["/bin/sh", "-c"]
     # Run siege with 50 concurrent users, 3 iterations, and the urls.txt file
     command: >
-      siege -c 50 -r 3 -f /siege/urls.txt | tee /siege/siege.log
+      "chmod 777 /siege && siege -c 50 -r 3 -f /siege/urls.txt"
       
   vegeta:
     image: peterevans/vegeta
@@ -25,12 +25,12 @@ services:
       - httpbin
     volumes:
       - ./vegeta:/vegeta
-    entrypoint: [ "/bin/sh", "-lc" ]
-    # Run vegeta with request per minute are 80 and the duration of test 30s
+    entrypoint: ["/bin/sh", "-c"]
+    # Run vegeta with request per minute = 80 and the duration of test = 30s
     command: >
-      vegeta attack -targets=tests.txt -rate=80 -duration=30s |
-      tee results.bin |
-      vegeta report -type=html > report.html
+      "chmod 777 /vegeta &&
+       vegeta attack -targets=tests.txt -rate=80 -duration=30s | tee /vegeta/results.bin &&
+       vegeta plot /vegeta/results.bin > /vegeta/plot.html"
 
   locust:
     image: locustio/locust:latest
